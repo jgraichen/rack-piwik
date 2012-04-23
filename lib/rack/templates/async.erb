@@ -1,6 +1,10 @@
 <!-- Piwik -->
 <script type="text/javascript">
+<% if @options[:piwik_url] =~ /\Ahttps\:\/\// %>
+var pkBaseURL = "<%= @options[:piwik_url] %>/";
+<% else %>
 var pkBaseURL = (("https:" == document.location.protocol) ? "https://<%= @options[:piwik_url]%>/" : "http://<%= @options[:piwik_url]%>/");
+<% end %>
 document.write(unescape("%3Cscript src='" + pkBaseURL + "piwik.js' type='text/javascript'%3E%3C/script%3E"));
 </script><script type="text/javascript">
 try {
