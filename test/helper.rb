@@ -3,7 +3,7 @@ require 'test/unit'
 require 'shoulda'
 require 'rack'
 require 'rack/test'
-require File.expand_path('../../lib/rack/google-analytics',__FILE__)
+require File.expand_path('../../lib/rack/piwik',__FILE__)
 
 class Test::Unit::TestCase
   include Rack::Test::Methods
@@ -14,15 +14,15 @@ class Test::Unit::TestCase
     main_app = lambda { |env|
       request = Rack::Request.new(env)
       case request.path
-      when '/' then [200,{ 'Content-Type' => 'application/html' },['<head>Hello world</head>']]
-      when '/test.xml' then [200,{'Content-Type' => 'application/xml'}, ['Xml here']]
-      when '/bob' then [200,{'Content-Type' => 'application/html'} ,['<body>bob here</body>']]
+      when '/head_only' then [200,{ 'Content-Type' => 'application/html' },['<head>head only</head>']]
+      when '/arbitrary.xml' then [200,{'Content-Type' => 'application/xml'}, ['xml only']]
+      when '/body_only' then [200,{'Content-Type' => 'application/html'} ,['<body>body only</body>']]
       else [404,'Nothing here']
       end
     }
 
     builder = Rack::Builder.new
-    builder.use Rack::GoogleAnalytics, options
+    builder.use Rack::Piwik, options
     builder.run main_app
     @app = builder.to_app
   end

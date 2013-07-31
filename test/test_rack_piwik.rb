@@ -1,58 +1,65 @@
 require File.expand_path('../helper',__FILE__)
 
-class TestRackGoogleAnalytics < Test::Unit::TestCase
-  
-  context "Asyncronous" do
+class TestRackPiwik < Test::Unit::TestCase
+
+  context "Asynchronous" do
     context "default" do
-      setup { mock_app :async => true, :tracker => 'somebody' }
-      should "show asyncronous tracker" do
-        get "/"
-        assert_match %r{\_gaq\.push}, last_response.body
-        assert_match %r{\'\_setAccount\', \"somebody\"}, last_response.body
-        assert_match %r{</script></head>}, last_response.body
-        assert_equal "532", last_response.headers['Content-Length']
+      setup { mock_app :async => true, :tracker => 'somebody', :piwik_url => 'piwik.example.org', :piwik_id => '123' }
+      should "add tracker if body element is present" do
+        get "/body_only"
+        assert_match 'http://piwik.example.org/', last_response.body
+        assert_match '_paq.push(["setSiteId", "123"]);', last_response.body
+        assert_match %r{</noscript>\n<!-- End Piwik --></body>}, last_response.body
+        assert_equal 787, last_response.headers['Content-Length'].to_i
       end
 
-      should "not add tracker to none html content-type" do
-        get "/test.xml"
-        assert_no_match %r{\_gaq\.push}, last_response.body
-        assert_match %r{Xml here}, last_response.body
+      should "omit 404 tracking for other responses with other status" do
+        get "/body_only"
+        assert_no_match %r{.setDocumentTitle\('404/URL}, last_response.body
       end
 
-      should "not add without </head>" do
-        get "/bob"
-        assert_no_match %r{\_gaq\.push}, last_response.body
-        assert_match %r{bob here}, last_response.body
+      should "omit addition of tracking code for non-html content" do
+        get "/arbitrary.xml"
+        assert_no_match %r{Piwik}, last_response.body
+        assert_match %r{xml only}, last_response.body
       end
-    end
 
-    context "multiple sub domains" do
-      setup { mock_app :async => true, :multiple => true, :tracker => 'gonna', :domain => 'mydomain.com' }
-      should "add multiple domain script" do
-        get "/"
-        assert_match %r{'_setDomainName', \"mydomain.com\"}, last_response.body
-        assert_equal "579", last_response.headers['Content-Length']
+      should "omit addition of tracking code if </body> tag is missing" do
+        get "/head_only"
+        assert_no_match %r{Piwik}, last_response.body
+        assert_match %r{head only}, last_response.body
       end
+      
     end
     
-    context "multiple top-level domains" do
-      setup { mock_app :async => true, :top_level => true, :tracker => 'get', :domain => 'mydomain.com' }
-      should "add top_level domain script" do
-        get "/"
-        assert_match %r{'_setDomainName', 'none'}, last_response.body
-        assert_match %r{'_setAllowLinker', true}, last_response.body
+    context "with a number as piwik id" do
+      setup { mock_app :async => true, :tracker => 'somebody', :piwik_url => 'piwik.example.org', :piwik_id => 123 }
+      should "not raise an exception" do
+        assert_nothing_raised do
+          get "/body_only"
+        end
       end
     end
-
   end
-  
-  context "Syncronous" do
-    setup { mock_app :async => false, :tracker => 'whatthe' }
-    should "show non-asyncronous tracker" do
+
+=begin
+  context "Synchronous" do
+    setup { mock_app :async => false, :tracker => 'somebody', :piwik_url => 'piwik.example.org', :piwik_id => '123' }
+
+    should "add tracker if body element is present" do
+      get "/body_only"
+      assert_match %r{https://piwik.example.org/}, last_response.body
+      assert_match %r{123\);}, last_response.body
+      assert_match %r{</noscript>\n<!-- End Piwik --></body>}, last_response.body
+      assert_equal "650", last_response.headers['Content-Length']
+    end
+
+    should "show non-asynchronous tracker" do
       get "/bob"
-      assert_match %r{_gat._getTracker}, last_response.body
+      assert_match %r{.getTracker}, last_response.body
       assert_match %r{</script></body>}, last_response.body
       assert_match %r{\"whatthe\"}, last_response.body
     end
   end
+=end
 end

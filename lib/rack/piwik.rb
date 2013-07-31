@@ -8,6 +8,7 @@ module Rack
 
     def initialize(app, options = {})
       raise ArgumentError, "piwik_url must be present" unless options[:piwik_url] and !options[:piwik_url].empty?
+      raise ArgumentError, "piwik_id must be present" unless options[:piwik_id] and !options[:piwik_id].to_s.empty?
       @app, @options = app, DEFAULT.merge(options)
     end
 
@@ -26,9 +27,9 @@ module Rack
     def html?; @headers['Content-Type'] =~ /html/; end
 
     def inject(response)
-      file = 'async' 
+      file = 'async'
       @template ||= ::ERB.new ::File.read ::File.expand_path("../templates/#{file}.erb",__FILE__)
-      response.gsub(%r{</head>}, @template.result(binding) + "</head>")
+      response.gsub(%r{</body>}, @template.result(binding) + "</body>")
     end
   end
 end
